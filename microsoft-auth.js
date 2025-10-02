@@ -16,7 +16,8 @@ const msalInstance = new msal.PublicClientApplication(msalConfig);
 
 // Configuración de la solicitud de login
 const loginRequest = {
-    scopes: ["openid", "profile", "User.Read"]
+    scopes: ["openid", "profile", "User.Read"],
+    prompt: "select_account"
 };
 
 // Función para iniciar sesión con Microsoft
@@ -25,14 +26,11 @@ async function signInWithMicrosoft() {
         console.log("Iniciando sesión con Microsoft...");
         
         // Intentar login silencioso primero
-        const silentRequest = {
-            ...loginRequest,
-            account: msalInstance.getActiveAccount()
-        };
+        await msalInstance.loginRedirect(loginRequest);
 
         let result;
         try {
-            result = await msalInstance.acquireTokenSilent(silentRequest);
+            result = await msalInstance.acquireTokenSilent(loginRequest);
         } catch (silentError) {
             // Si falla el login silencioso, usar popup
             result = await msalInstance.acquireTokenPopup(loginRequest);
