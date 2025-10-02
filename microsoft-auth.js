@@ -3,7 +3,7 @@ const msalConfig = {
     auth: {
         clientId: "82d7d86c-af46-4bb4-816d-7c8690a6dc25", // Reemplaza con tu Client ID de Azure
         authority: "https://login.microsoftonline.com/common",
-        redirectUri: window.location.origin
+        redirectUri: "https://jostyn07.github.io/asesoriasPrueba/" // Asegúrate de que esta URL esté registrada en Azure AD
     },
     cache: {
         cacheLocation: "sessionStorage",
@@ -25,24 +25,24 @@ async function signInWithMicrosoft() {
     try {
         console.log("Iniciando sesión con Microsoft...");
         
-        // Intentar login silencioso primero
         await msalInstance.loginRedirect(loginRequest);
 
-        let result;
-        try {
-            result = await msalInstance.acquireTokenSilent(loginRequest);
-        } catch (silentError) {
-            // Si falla el login silencioso, usar popup
-            result = await msalInstance.acquireTokenPopup(loginRequest);
-        }
-
-        if (result) {
-            console.log("Login exitoso:", result);
-            handleMicrosoftSuccess(result);
-        }
     } catch (error) {
         console.error("Error en login de Microsoft:", error);
         alert("Error al iniciar sesión con Microsoft. Inténtalo de nuevo.");
+    }
+}
+
+async function handleRedirectResult() {
+    try {
+        const result = await msalInstance.handleRedirectPromise();
+
+        if (result) {
+            console.log("Login exitoso con Microsoft:", result);
+            handleMicrosoftSuccess(result);
+        }
+    } catch (error) {
+        console.error("Error al manejar el resultado de redirección:", error);
     }
 }
 
@@ -62,10 +62,21 @@ function handleMicrosoftSuccess(result) {
     sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
     sessionStorage.setItem('accessToken', result.accessToken);
     sessionStorage.setItem('authProvider', 'microsoft');
+    sessionStorage.setItem('sessionActive', account.name);
     
     // Redirigir al formulario
     window.location.href = 'formulario.html';
 }
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await msalInstance.initialize();
+    console.log("MSAL inicializado correctamente");
+
+    await handleRedirectResult();
+});
+
+// funciones para uso global
+window.signInWithMicrosoft = signInWithMicrosoft;
 
 // Función para cerrar sesión
 async function signOutMicrosoft() {
