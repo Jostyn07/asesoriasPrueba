@@ -120,6 +120,20 @@ async function signOutMicrosoft() {
         console.error("Error al cerrar sesión:", error);
     }
 }
+function checkMicrosoftAuth() {
+    let activeAccount = msalInstance.getActiveAccount();
+    if (activeAccount) {
+        return true;
+    }
+
+    const allAcounts = msalInstance.getAllAccounts();
+    if (allAcounts && allAcounts.length > 0) {
+        msalInstance.setActiveAccount(allAcounts[0]);
+        return true;
+    }
+
+    return false;
+}
 
 // Inicializar MSAL al cargar la página
 msalInstance.initialize().then(() => {
@@ -127,5 +141,5 @@ msalInstance.initialize().then(() => {
 });
 
 window.signInWithMicrosoft = signInWithMicrosoft;
-window.checkMicrosoftAuth = checkActiveSession;
+window.checkMicrosoftAuth = checkMicrosoftAuth;
 window.signOutMicrosoft = signOutMicrosoft;
