@@ -60,7 +60,11 @@ function ensureAuthenticated() {
 
   // Ningún proveedor de autenticación reconocido
   console.log('No hay autenticación válida. Redirigiendo a login.');
-  localStorage.clear();
+  localStorage.removeItem('authProvider');
+  localStorage.removeItem('sessionActive');
+  localStorage.removeItem('userInfo');
+  localStorage.removeItem('userName');
+
   window.location.href = 'index.html';
   return false;
 }
