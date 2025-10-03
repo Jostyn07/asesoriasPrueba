@@ -50,16 +50,31 @@ function ensureAuthenticated() {
       const isValid = window.checkMicrosoftAuth();
       console.log("Autenticación Microsoft válida:", isValid);
       if (isValid) return true;
+    } else {
+      if (sessionActive === 'true') {
+        console.warn('Retraso en la carga MSAL. Asumiendo sesión válida temporalmente');
+        return true;
+      }
     }
-  } else if (authProvider === 'google') {
+  }
+  else if (authProvider === 'google') {
     if (isTokenValid()) {
       console.log('Autenticación Google válida');
       return true;
     }
   }
 
+  console.log("No es válida la autenticación para el proveedor:", authProvider, "Sesión activa:", sessionActive);
   // Ningún proveedor de autenticación reconocido
-  console.log('No hay autenticación válida. Redirigiendo a login.');
+  localStorage.removeItem('authProvider');
+  localStorage.removeItem('sessionActive');
+  localStorage.removeItem('userInfo');
+  localStorage.removeItem('userName');
+
+  localStorage.removeItem("google_access_token");
+  localStorage.removeItem("google_token_expiry");
+  localStorage.removeItem("google_user_info");
+
   window.location.href = 'index.html';
   return false;
 }
