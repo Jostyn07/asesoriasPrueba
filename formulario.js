@@ -39,17 +39,43 @@ function promptAndRedirectToLogin(msg = "Tu sesión ha expirado. Debes iniciar s
   window.location.href = LOGIN_URL;
 }
 
-function ensureAuthenticated({
-  interactive = true
-} = {}) {
-  if (!isTokenValid()) {
-    const msg = "Tu sesión ha expirado. Inicia sesión para continuar.";
-    if (interactive) promptAndRedirectToLogin(msg);
-    else promptAndRedirectToLogin();
-    return false;
+function ensureAuthenticated() {
+  const authProvider = localStorage.getItem('authProvider');
+  const sessionActive = localStorage.getItem('sessionActive');
+
+  if (authProvider === 'google') {
+    return checkGoogleAuth();
+  } else if (authProvider === 'microsoft') {
+    return sessionActive === 'true' && checkMicrosoftAuth();
   }
-  return true;
+
+  // Ningún proveedor de autenticación reconocido
+  window.location.href = 'index.html';
+  return false;
 }
+
+// Mostrar nombre del usuario
+function displayUserName() {
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+  const userName = localStorage.getItem('userName');
+  const userNameElement = document.getElementById('userName');
+
+  if (userNameElement) {
+    if (userName) {
+      userNameElement.textContent = userName;
+    } else if (userInfo.name) {
+      userNameElement.textContent = userInfo.name;
+    } else {
+      userNameElement.textContent = 'Usuario';
+    }
+  }
+}
+
+// Llamar al cargar la pagina
+document.addEventListener('DOMContentLoaded', () => {
+  ensureAuthenticated();
+  displayUserName();
+})
 
 // =========================== Funcion para pasar entre pestañas ============================
 function activateTab(tabId) {
