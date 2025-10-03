@@ -41,15 +41,19 @@ function promptAndRedirectToLogin(msg = "Tu sesión ha expirado. Debes iniciar s
 
 function ensureAuthenticated() {
   const authProvider = localStorage.getItem('authProvider');
-  const sessionActive = localStorage.getItem('sessionActive');
-
+  
   if (authProvider === 'google') {
-    return checkGoogleAuth();
+    if (checkGoogleAuth()) {
+      return true;
+    };
   } else if (authProvider === 'microsoft') {
-    return sessionActive === 'true' && checkMicrosoftAuth();
+    if (typeof checkMicrosoftAuth === 'function' && checkMicrosoftAuth()) {
+      return true;
+    }
   }
 
   // Ningún proveedor de autenticación reconocido
+  localStorage.clear();
   window.location.href = 'index.html';
   return false;
 }
