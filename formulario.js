@@ -113,23 +113,25 @@ function formatDateToUS(dateStr) {
 }
 // ============================ Inicialización ==============================
 document.addEventListener("DOMContentLoaded", () => {
-  if (!ensureAuthenticated()) {
-    return;
-  }
+  setTimeout(() => {
+    if (!ensureAuthenticated()) {
+      return;
+    }
 
-  // mostrar nombre del usuario
-  displayUserName();
+    // mostrar nombre del usuario
+    displayUserName();
 
-  const authProvider = localStorage.getItem('authProvider');
-  if (authProvider === 'google') {
-    setInternal(() => {
-      if (!isTokenValid()) {
-        promptAndRedirectToLogin("Tu sesión ha expirado. Debes iniciar sesión nuevamente.");
-      }
-    }, 60000);
-  }
+    const authProvider = localStorage.getItem('authProvider');
+    if (authProvider === 'google') {
+      setInterval(() => {
+        if (!isTokenValid()) {
+          promptAndRedirectToLogin("Tu sesión ha expirado. Debes iniciar sesión nuevamente.");
+        }
+      }, 60000);
+    }
 
-  localStorage.removeItem('dependentsDraft'); // limpia borrador de dependientes al cargar el formulario
+    localStorage.removeItem('dependentsDraft'); // limpia borrador de dependientes al cargar el formulario
+  });
 });
 window.addEventListener("storage", (e) => {
   if (e.key === "google_access_token" && !e.newValue) {
@@ -221,11 +223,6 @@ function openDependentsModal() {
 
   modal.style.display = "block";
   updateDependentsCount();
-}
-
-function closeDependentsModal() {
-  const modal = $("#dependentsModal");
-  if (modal) modal.style.display = "none";
 }
 
 function updateDependentsCount() {
