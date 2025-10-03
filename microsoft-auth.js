@@ -3,7 +3,7 @@ const msalConfig = {
     auth: {
         clientId: "82d7d86c-af46-4bb4-816d-7c8690a6dc25", // Reemplaza con tu Client ID de Azure
         authority: "https://login.microsoftonline.com/common",
-        redirectUri: "https://jostyn07.github.io/asesoriasPrueba/" // Asegúrate de que esta URL esté registrada en Azure AD
+        redirectUri: "https://jostyn07.github.io/asesoriasPrueba/formulario.html" // Asegúrate de que esta URL esté registrada en Azure AD
     },
     cache: {
         cacheLocation: "sessionStorage",
@@ -91,4 +91,5 @@ async function signOutMicrosoft() {
 // Inicializar MSAL al cargar la página
 msalInstance.initialize().then(() => {
     console.log("MSAL inicializado correctamente");
+
 });
