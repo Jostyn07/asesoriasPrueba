@@ -42,12 +42,12 @@ function promptAndRedirectToLogin(msg = "Tu sesión ha expirado. Debes iniciar s
 function ensureAuthenticated() {
   const authProvider = localStorage.getItem('authProvider');
   
-  if (authProvider === 'google') {
-    if (checkGoogleAuth()) {
+  if (authProvider === 'microsoft') {
+    if (checkMicrosoftAuth()) {
       return true;
-    };
-  } else if (authProvider === 'microsoft') {
-    if (typeof checkMicrosoftAuth === 'function' && checkMicrosoftAuth()) {
+    }
+  } else if (authProvider === 'google') {
+    if (typeof checkGoogleAuth === 'function' && checkGoogleAuth()) {
       return true;
     }
   }
