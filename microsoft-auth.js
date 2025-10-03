@@ -59,10 +59,12 @@ function handleMicrosoftSuccess(result) {
     console.log("Usuario autenticado:", userInfo);
     
     // Guardar información del usuario
-    sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
-    sessionStorage.setItem('accessToken', result.accessToken);
-    sessionStorage.setItem('authProvider', 'microsoft');
-    sessionStorage.setItem('sessionActive', account.name);
+    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+    localStorage.setItem('accessToken', result.accessToken);
+    localStorage.setItem('authProvider', 'microsoft');
+    localStorage.setItem('sessionActive', account.name);
+    localStorage.setItem('userName', account.name);
+
     
     // Redirigir al formulario
     window.location.href = 'formulario.html';
@@ -71,6 +73,40 @@ function handleMicrosoftSuccess(result) {
 document.addEventListener('DOMContentLoaded', async () => {
     await msalInstance.initialize();
     console.log("MSAL inicializado correctamente");
+
+    await handleRedirectResult();
+});
+
+// Verificar si ya hay una sesión activa al cargar la página
+function checkActiveSession() {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+        const account = accounts[0];
+        msalInstance.setActiveAccount(account);
+
+        // Guardar datos de la sesión
+        localStorage.setItem('userInfo', JSON.stringify({
+            name: account.name,
+            email: account.username,
+            provider: 'microsoft'
+        }));
+        localStorage.setItem('authProvider', 'microsoft');
+        localStorage.setItem('sessionActive', 'true');
+        localStorage.setItem('userName', account.name);
+
+        return true;
+    }
+    return false;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await msalInstance.initialize();
+    console.log("MSAL inicializado correctamente");
+
+    // Verificar sesión activa
+    if (checkActiveSession()) {
+        console.log("Sesión activa encontrada.");
+    }
 
     await handleRedirectResult();
 });
@@ -91,5 +127,6 @@ async function signOutMicrosoft() {
 // Inicializar MSAL al cargar la página
 msalInstance.initialize().then(() => {
     console.log("MSAL inicializado correctamente");
-
 });
+
+window.signOutMicrosoft = signOutMicrosoft;
