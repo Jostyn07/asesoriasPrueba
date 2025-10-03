@@ -126,4 +126,6 @@ msalInstance.initialize().then(() => {
     console.log("MSAL inicializado correctamente");
 });
 
+window.signInWithMicrosoft = signInWithMicrosoft;
+window.checkMicrosoftAuth = checkActiveSession;
 window.signOutMicrosoft = signOutMicrosoft;
