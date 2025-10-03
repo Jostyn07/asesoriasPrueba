@@ -41,18 +41,25 @@ function promptAndRedirectToLogin(msg = "Tu sesión ha expirado. Debes iniciar s
 
 function ensureAuthenticated() {
   const authProvider = localStorage.getItem('authProvider');
+  const sessionActive = localStorage.getItem('sessionActive');
   
+  console.log("Verificando autenticación. Proveedor:", authProvider, "Sesión activa:", sessionActive);
+
   if (authProvider === 'microsoft') {
-    if (checkMicrosoftAuth()) {
-      return true;
+    if (sessionActive === 'true' && typeof window.checkMicrosoftAuth === 'function') {
+      const isValid = window.checkMicrosoftAuth();
+      console.log("Autenticación Microsoft válida:", isValid);
+      if (isValid) return true;
     }
   } else if (authProvider === 'google') {
-    if (typeof checkGoogleAuth === 'function' && checkGoogleAuth()) {
+    if (isTokenValid()) {
+      console.log('Autenticación Google válida');
       return true;
     }
   }
 
   // Ningún proveedor de autenticación reconocido
+  console.log('No hay autenticación válida. Redirigiendo a login.');
   localStorage.clear();
   window.location.href = 'index.html';
   return false;
@@ -74,12 +81,6 @@ function displayUserName() {
     }
   }
 }
-
-// Llamar al cargar la pagina
-document.addEventListener('DOMContentLoaded', () => {
-  ensureAuthenticated();
-  displayUserName();
-})
 
 // =========================== Funcion para pasar entre pestañas ============================
 function activateTab(tabId) {
@@ -112,13 +113,23 @@ function formatDateToUS(dateStr) {
 }
 // ============================ Inicialización ==============================
 document.addEventListener("DOMContentLoaded", () => {
-  ensureAuthenticated({
-    interactive: true
-  });
-  setInterval(() => ensureAuthenticated({
-    interactive: false
-  }), 60_000);
-  localStorage.removeItem('dependentsDraft'); // Limpia el borrador de dependientes al cargar la página
+  if (!ensureAuthenticated()) {
+    return;
+  }
+
+  // mostrar nombre del usuario
+  displayUserName();
+
+  const authProvider = localStorage.getItem('authProvider');
+  if (authProvider === 'google') {
+    setInternal(() => {
+      if (!isTokenValid()) {
+        promptAndRedirectToLogin("Tu sesión ha expirado. Debes iniciar sesión nuevamente.");
+      }
+    }, 60000);
+  }
+
+  localStorage.removeItem('dependentsDraft'); // limpia borrador de dependientes al cargar el formulario
 });
 window.addEventListener("storage", (e) => {
   if (e.key === "google_access_token" && !e.newValue) {
