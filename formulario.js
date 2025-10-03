@@ -127,7 +127,7 @@ function formatDateToUS(dateStr) {
 }
 // ============================ Inicialización ==============================
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => {
+  setTimeout(() => { // ✅ Esperar a que se cargue microsoft-auth.js
     if (!ensureAuthenticated()) {
       return;
     }
@@ -137,15 +137,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const authProvider = localStorage.getItem('authProvider');
     if (authProvider === 'google') {
-      setInterval(() => {
+      setInterval(() => { // ✅ Solo verificar Google cada 60 segundos
         if (!isTokenValid()) {
           promptAndRedirectToLogin("Tu sesión ha expirado. Debes iniciar sesión nuevamente.");
         }
       }, 60000);
     }
+    // ✅ NO verificar Microsoft cada 60 segundos
 
     localStorage.removeItem('dependentsDraft'); // limpia borrador de dependientes al cargar el formulario
-  });
+  }, 200); // ✅ Dar tiempo a que se cargue microsoft-auth.js
 });
 window.addEventListener("storage", (e) => {
   if (e.key === "google_access_token" && !e.newValue) {
