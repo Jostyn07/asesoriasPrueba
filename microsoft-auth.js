@@ -70,13 +70,6 @@ function handleMicrosoftSuccess(result) {
     window.location.href = 'formulario.html';
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await msalInstance.initialize();
-    console.log("MSAL inicializado correctamente");
-
-    await handleRedirectResult();
-});
-
 // Verificar si ya hay una sesión activa al cargar la página
 function checkActiveSession() {
     const accounts = msalInstance.getAllAccounts();
@@ -100,15 +93,19 @@ function checkActiveSession() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await msalInstance.initialize();
-    console.log("MSAL inicializado correctamente");
+    try {
+        await msalInstance.initialize();
+        console.log("MSAL inicializado correctamente");
 
-    // Verificar sesión activa
-    if (checkActiveSession()) {
-        console.log("Sesión activa encontrada.");
+        // Verificar sesión activa
+        if (checkActiveSession()) {
+            console.log("Sesión activa encontrada.");
+        }
+
+        await handleRedirectResult();
+    } catch (error) {
+        console.error("Error al inicializar MSAL:", error);
     }
-
-    await handleRedirectResult();
 });
 
 // funciones para uso global
