@@ -30,9 +30,11 @@ function isTokenValid(skew = AUTH_SKEW_MS) {
 }
 
 function promptAndRedirectToLogin(msg = "Tu sesión ha expirado. Debes iniciar sesión nuevamente.") {
-  localStorage.removeItem("google_access_token");
-  localStorage.removeItem("google_token_expiry");
-  localStorage.removeItem("google_user_info");
+  // Evitar múltiples redirects si ya se está procesando uno
+  if (window.isRedirecting) return;
+  window.isRedirecting = true;
+  
+  clearAllAuthData();
   try {
     alert(msg);
   } catch (_) {}
@@ -46,15 +48,10 @@ function ensureAuthenticated() {
   console.log("Verificando autenticación. Proveedor:", authProvider, "Sesión activa:", sessionActive);
 
   if (authProvider === 'microsoft') {
-    if (sessionActive === 'true' && typeof window.checkMicrosoftAuth === 'function') {
-      const isValid = window.checkMicrosoftAuth();
-      console.log("Autenticación Microsoft válida:", isValid);
-      if (isValid) return true;
-    } else {
-      if (sessionActive === 'true') {
-        console.warn('Retraso en la carga MSAL. Asumiendo sesión válida temporalmente');
-        return true;
-      }
+    // Para Microsoft, simplemente verificar si hay sesión activa
+    if (sessionActive === 'true') {
+      console.log('Sesión Microsoft activa');
+      return true;
     }
   }
   else if (authProvider === 'google') {
@@ -64,19 +61,25 @@ function ensureAuthenticated() {
     }
   }
 
-  console.log("No es válida la autenticación para el proveedor:", authProvider, "Sesión activa:", sessionActive);
-  // Ningún proveedor de autenticación reconocido
+  // Solo limpiar y redirigir si NO hay ninguna sesión válida
+  if (!authProvider || sessionActive !== 'true') {
+    console.log("No hay autenticación válida. Redirigiendo a login.");
+    clearAllAuthData();
+    window.location.href = 'index.html';
+    return false;
+  }
+
+  return true;
+}
+
+function clearAllAuthData() {
   localStorage.removeItem('authProvider');
   localStorage.removeItem('sessionActive');
   localStorage.removeItem('userInfo');
   localStorage.removeItem('userName');
-
   localStorage.removeItem("google_access_token");
   localStorage.removeItem("google_token_expiry");
   localStorage.removeItem("google_user_info");
-
-  window.location.href = 'index.html';
-  return false;
 }
 
 // Mostrar nombre del usuario
@@ -127,26 +130,33 @@ function formatDateToUS(dateStr) {
 }
 // ============================ Inicialización ==============================
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => { // ✅ Esperar a que se cargue microsoft-auth.js
-    if (!ensureAuthenticated()) {
-      return;
-    }
+  // Verificación inicial de autenticación (solo una vez al cargar)
+  const authProvider = localStorage.getItem('authProvider');
+  const sessionActive = localStorage.getItem('sessionActive');
+  
+  console.log("Inicializando formulario. Proveedor:", authProvider, "Sesión:", sessionActive);
+  
+  // Si no hay proveedor de autenticación válido, redirigir
+  if (!authProvider || sessionActive !== 'true') {
+    console.log("No hay sesión válida. Redirigiendo...");
+    clearAllAuthData();
+    window.location.href = 'index.html';
+    return;
+  }
 
-    // mostrar nombre del usuario
-    displayUserName();
+  // mostrar nombre del usuario
+  displayUserName();
 
-    const authProvider = localStorage.getItem('authProvider');
-    if (authProvider === 'google') {
-      setInterval(() => { // ✅ Solo verificar Google cada 60 segundos
-        if (!isTokenValid()) {
-          promptAndRedirectToLogin("Tu sesión ha expirado. Debes iniciar sesión nuevamente.");
-        }
-      }, 60000);
-    }
-    // ✅ NO verificar Microsoft cada 60 segundos
+  // Solo para Google, verificar token periódicamente
+  if (authProvider === 'google') {
+    setInterval(() => {
+      if (!isTokenValid()) {
+        promptAndRedirectToLogin("Tu sesión ha expirado. Debes iniciar sesión nuevamente.");
+      }
+    }, 60000); // Verificar cada 60 segundos
+  }
 
-    localStorage.removeItem('dependentsDraft'); // limpia borrador de dependientes al cargar el formulario
-  }, 200); // ✅ Dar tiempo a que se cargue microsoft-auth.js
+  localStorage.removeItem('dependentsDraft'); // limpia borrador de dependientes al cargar el formulario
 });
 window.addEventListener("storage", (e) => {
   if (e.key === "google_access_token" && !e.newValue) {
@@ -895,10 +905,14 @@ return true;
 const BACKEND_URL = "https://asesoriasth-backend.onrender.com/api"; // Cambia esto a tu URL real
 
 async function sendFormDataToSheets(data) {
-  if (!ensureAuthenticated({
-      interactive: true
-    })) {
-    throw new Error("No estás autenticado. Por favor, inicia sesión de nuevo.");
+  const authProvider = localStorage.getItem('authProvider');
+  
+  if (authProvider !== 'google') {
+    throw new Error("Esta funcionalidad requiere autenticación con Google.");
+  }
+  
+  if (!isTokenValid()) {
+    throw new Error("Tu sesión de Google ha expirado. Por favor, inicia sesión de nuevo.");
   }
 
   const accessToken = localStorage.getItem("google_access_token");
