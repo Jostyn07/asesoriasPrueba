@@ -17,7 +17,7 @@ const msalConfig = {
     auth: {
         clientId: "82d7d86c-af46-4bb4-816d-7c8690a6dc25",
         authority: "https://login.microsoftonline.com/common",
-        redirectUri: "https://jostyn07.github.io/asesoriasPrueba/formulario.html",
+        redirectUri: "https://jostyn07.github.io/asesoriasPrueba/",
     },
     cache: {
         cacheLocation: "localStorage", // ✅ Cambiar a localStorage para persistencia
