@@ -45,31 +45,35 @@ function ensureAuthenticated() {
   const authProvider = localStorage.getItem('authProvider');
   const sessionActive = localStorage.getItem('sessionActive');
   
-  console.log("Verificando autenticación. Proveedor:", authProvider, "Sesión activa:", sessionActive);
+  console.log("🔍 Verificando autenticación:");
+  console.log("- Proveedor:", authProvider);
+  console.log("- Sesión activa:", sessionActive);
 
+  // ✅ Para Microsoft: verificar solo localStorage
   if (authProvider === 'microsoft') {
-    // Para Microsoft, simplemente verificar si hay sesión activa
     if (sessionActive === 'true') {
-      console.log('Sesión Microsoft activa');
+      console.log('✅ Sesión Microsoft válida');
       return true;
+    } else {
+      console.log('❌ Sesión Microsoft inválida');
+      return false;
     }
   }
+  
+  // ✅ Para Google: verificar token
   else if (authProvider === 'google') {
     if (isTokenValid()) {
-      console.log('Autenticación Google válida');
+      console.log('✅ Autenticación Google válida');
       return true;
+    } else {
+      console.log('❌ Token Google inválido');
+      return false;
     }
   }
 
-  // Solo limpiar y redirigir si NO hay ninguna sesión válida
-  if (!authProvider || sessionActive !== 'true') {
-    console.log("No hay autenticación válida. Redirigiendo a login.");
-    clearAllAuthData();
-    window.location.href = 'index.html';
-    return false;
-  }
-
-  return true;
+  // ✅ Si no hay proveedor válido
+  console.log("❌ No hay proveedor de autenticación válido");
+  return false;
 }
 
 function clearAllAuthData() {
@@ -88,16 +92,38 @@ function displayUserName() {
   const userName = localStorage.getItem('userName');
   const userNameElement = document.getElementById('userName');
 
+  console.log('📝 Mostrando nombre de usuario:', { userName, userInfo });
+
   if (userNameElement) {
     if (userName) {
       userNameElement.textContent = userName;
+      console.log('✅ Nombre mostrado desde userName:', userName);
     } else if (userInfo.name) {
       userNameElement.textContent = userInfo.name;
+      console.log('✅ Nombre mostrado desde userInfo:', userInfo.name);
     } else {
       userNameElement.textContent = 'Usuario';
+      console.log('⚠️ Usando nombre por defecto: Usuario');
     }
+  } else {
+    console.log('❌ Elemento userName no encontrado en el DOM');
   }
 }
+
+// ✅ Función de debugging para verificar estado de autenticación
+function debugAuthState() {
+  console.log("=== 🔍 DEBUG AUTENTICACIÓN ===");
+  console.log("authProvider:", localStorage.getItem('authProvider'));
+  console.log("sessionActive:", localStorage.getItem('sessionActive'));
+  console.log("userInfo:", localStorage.getItem('userInfo'));
+  console.log("userName:", localStorage.getItem('userName'));
+  console.log("accessToken:", localStorage.getItem('accessToken'));
+  console.log("google_access_token:", localStorage.getItem('google_access_token'));
+  console.log("=== FIN DEBUG ===");
+}
+
+// Exponer función globalmente para debugging
+window.debugAuthState = debugAuthState;
 
 // =========================== Funcion para pasar entre pestañas ============================
 function activateTab(tabId) {
@@ -130,21 +156,43 @@ function formatDateToUS(dateStr) {
 }
 // ============================ Inicialización ==============================
 document.addEventListener("DOMContentLoaded", () => {
-  // Verificación inicial de autenticación (solo una vez al cargar)
+  console.log("🚀 Inicializando formulario...");
+  
+  // ✅ Verificación de autenticación mejorada
   const authProvider = localStorage.getItem('authProvider');
   const sessionActive = localStorage.getItem('sessionActive');
   
-  console.log("Inicializando formulario. Proveedor:", authProvider, "Sesión:", sessionActive);
+  console.log("📊 Estado de autenticación:");
+  console.log("- authProvider:", authProvider);
+  console.log("- sessionActive:", sessionActive);
   
-  // Si no hay proveedor de autenticación válido, redirigir
-  if (!authProvider || sessionActive !== 'true') {
-    console.log("No hay sesión válida. Redirigiendo...");
+  // ✅ Verificar si hay datos de usuario
+  const userInfo = localStorage.getItem('userInfo');
+  const userName = localStorage.getItem('userName');
+  console.log("- userInfo:", !!userInfo);
+  console.log("- userName:", userName);
+
+  // ✅ Solo redirigir si NO hay ninguna sesión válida
+  let isValidSession = false;
+  
+  if (authProvider === 'microsoft' && sessionActive === 'true') {
+    console.log('✅ Sesión Microsoft detectada como válida');
+    isValidSession = true;
+  } else if (authProvider === 'google' && isTokenValid()) {
+    console.log('✅ Sesión Google detectada como válida');
+    isValidSession = true;
+  }
+
+  if (!isValidSession) {
+    console.log("❌ No hay sesión válida. Redirigiendo a login.");
     clearAllAuthData();
     window.location.href = 'index.html';
     return;
   }
 
-  // mostrar nombre del usuario
+  console.log("✅ Sesión válida confirmada. Continuando con inicialización...");
+  
+  // Mostrar nombre del usuario
   displayUserName();
 
   // Solo para Google, verificar token periódicamente
@@ -153,10 +201,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isTokenValid()) {
         promptAndRedirectToLogin("Tu sesión ha expirado. Debes iniciar sesión nuevamente.");
       }
-    }, 60000); // Verificar cada 60 segundos
+    }, 60000);
   }
 
-  localStorage.removeItem('dependentsDraft'); // limpia borrador de dependientes al cargar el formulario
+  // Limpiar borrador de dependientes
+  localStorage.removeItem('dependentsDraft');
 });
 window.addEventListener("storage", (e) => {
   if (e.key === "google_access_token" && !e.newValue) {
