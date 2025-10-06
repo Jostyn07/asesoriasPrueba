@@ -225,7 +225,7 @@ async function signOutMicrosoft() {
         
         // ✅ Logout con redirect
         await msalInstance.logoutRedirect({
-            postLogoutRedirectUri: window.location.origin + '/index.html'
+            postLogoutRedirectUri: window.location.origin + '/formulario.html'
         });
         
     } catch (error) {
