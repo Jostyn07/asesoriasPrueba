@@ -33,7 +33,7 @@ const loginRequest = {
     prompt: "select_account"
 };
 
-// Función para iniciar sesión con Microsoft
+// Función para iniciar sesión con Microsoft (CORREGIDA)
 async function signInWithMicrosoft() {
     try {
         console.log("🔄 Iniciando sesión con Microsoft...");
@@ -45,23 +45,46 @@ async function signInWithMicrosoft() {
             return;
         }
 
-        // ✅ Iniciar login con configuración mejorada
-        await msalInstance.loginRedirect({
-            ...loginRequest,
-            prompt: 'select_account' // Fuerza selección de cuenta
-        });
+        // ✅ NUEVO: Verificar si hay interacción en progreso
+        const inProgress = msalInstance.getActiveAccount();
+        if (inProgress) {
+            console.log("⚠️ Ya hay una interacción en progreso");
+            return;
+        }
+
+        // ✅ NUEVO: Limpiar cualquier interacción pendiente
+        try {
+            await msalInstance.handleRedirectPromise();
+        } catch (e) {
+            console.log("Limpiando interacción previa...");
+        }
+
+        // ✅ Iniciar login
+        await msalInstance.loginRedirect(loginRequest);
         
     } catch (error) {
         console.error("❌ Error en login de Microsoft:", error);
         
-        // ✅ Mostrar error específico al usuario
+        // ✅ Manejo específico del error interaction_in_progress
+        if (error.errorCode === 'interaction_in_progress') {
+            console.log("🔄 Hay una interacción en progreso, esperando...");
+            
+            // Intentar manejar el resultado pendiente
+            setTimeout(async () => {
+                try {
+                    await handleRedirectResult();
+                } catch (e) {
+                    console.log("No hay resultado pendiente para manejar");
+                }
+            }, 1000);
+            return;
+        }
+        
         let errorMsg = "Error al iniciar sesión con Microsoft.";
         if (error.errorCode === 'user_cancelled') {
             errorMsg = "Login cancelado por el usuario.";
         } else if (error.errorCode === 'consent_required') {
             errorMsg = "Se requiere consentimiento adicional. Por favor, inténtalo de nuevo.";
-        } else if (error.errorCode === 'interaction_in_progress') {
-            errorMsg = "Ya hay un login en progreso. Espera un momento.";
         }
         
         alert(errorMsg);
@@ -229,13 +252,39 @@ async function getAccessTokenSilently() {
     }
 }
 
-// INICIALIZACIÓN ÚNICA Y SIN BUCLES
+// ✅ NUEVA: Función para limpiar estado problemático
+async function clearMSALState() {
+    try {
+        console.log("🧹 Limpiando estado MSAL...");
+        
+        // Limpiar cache
+        await msalInstance.clearCache();
+        
+        // Limpiar flags globales
+        window.isProcessingRedirect = false;
+        window.isRedirectingToForm = false;
+        
+        // Limpiar localStorage relacionado
+        localStorage.removeItem('authProvider');
+        localStorage.removeItem('sessionActive');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('accessToken');
+        
+        console.log("✅ Estado MSAL limpiado");
+        
+    } catch (error) {
+        console.error("Error al limpiar estado MSAL:", error);
+    }
+}
+
+// INICIALIZACIÓN MEJORADA Y SIN BUCLES
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await msalInstance.initialize();
         console.log("✅ MSAL inicializado correctamente");
 
-        // Solo manejar resultado del redirect si venimos de Microsoft
+        // ✅ NUEVO: Limpiar estado previo problemático
         const urlParams = new URLSearchParams(window.location.search);
         const hasAuthCode = urlParams.has('code') || window.location.hash.includes('access_token');
         
@@ -244,7 +293,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             await handleRedirectResult();
         } else {
             console.log("Carga normal de la página, sin redirect de Microsoft");
+            
+            // ✅ NUEVO: Verificar cuentas existentes sin causar loops
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                console.log("🔍 Encontrada cuenta existente:", accounts[0].name);
+                // No redirigir automáticamente, solo log
+            }
         }
+        
+        // ✅ NUEVO: Limpiar flags globales al cargar
+        window.isProcessingRedirect = false;
+        window.isRedirectingToForm = false;
+        
     } catch (error) {
         console.error("❌ Error al inicializar MSAL:", error);
     }
@@ -255,6 +316,7 @@ window.signInWithMicrosoft = signInWithMicrosoft;
 window.checkMicrosoftAuth = checkMicrosoftAuth;
 window.signOutMicrosoft = signOutMicrosoft;
 window.getAccessTokenSilently = getAccessTokenSilently; // Para debugging
+window.clearMSALState = clearMSALState; // Para limpiar estado problemático
 
 // ✅ Variables globales para debugging (solo en desarrollo)
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
